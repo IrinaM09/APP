@@ -53,7 +53,7 @@ void readInput(const char *fileName, image *img)
 
 	printf("Input image width and height: %d %d\n", (*img).width, (*img).height);
 
-	img->data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
+	img->data = (unsigned char*)malloc(data_size * sizeof(unsigned char));
 
 	while (info.output_scanline < info.output_height)
 	{
@@ -173,7 +173,9 @@ int main(int argc, char * argv[]) {
 	out.height = in.height;
 	out.width = in.width;
 	unsigned long data_size = (unsigned long) out.width * out.height * 3;
-	out.data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
+	out.data = (unsigned char*)malloc(data_size * sizeof(unsigned char));
+	if (out.data == NULL)
+		return -1;
 
 	printf("successfully Initialized output\n");
 

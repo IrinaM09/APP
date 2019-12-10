@@ -184,6 +184,8 @@ int main(int argc, char * argv[]) {
 	out.width = in.width;
 	unsigned long data_size = (unsigned long) out.width * out.height * 3;
 	out.data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
+	if (out.data == NULL)
+		return -1;
 
 	printf("successfully Initialized output\n");
 

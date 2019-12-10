@@ -21,11 +21,11 @@ int edgeDetectionFilter[3][3] = {{-1, -1, -1},
 
 
 //Get the interval to process
-void getInterval(int *start, int *end, int rank, int P, int height) {
+void getInterval(unsigned long *start, unsigned long *end, int rank, int P, unsigned long height) {
 	*start = rank * height / P;
 	*end = (rank + 1) * height / P;
 
-	if (rank == P -1 && height % P != 0)
+	if (rank == P - 1 && height % P != 0)
 		*end = height;
 } 
 
@@ -158,7 +158,7 @@ int computeSum(unsigned long row, unsigned long column, image *in)
 //Apply filter
 void applyFilter(image *in, image *out, int rank, int P)
 {
-	int start, end;
+	unsigned long start, end;
 
 	getInterval(&start, &end, rank, P, in->height);
 
@@ -182,7 +182,7 @@ void applyFilter(image *in, image *out, int rank, int P)
 
 //Compute the whole image
 void computeImage(image *out, int rank, int P) {
-	int start, end;
+	unsigned long start, end;
 	
 	if (rank != 0) {
 		getInterval(&start, &end, rank, P, out->height);
@@ -217,8 +217,8 @@ int main(int argc, char * argv[]) {
 
 		// Send image to the other processes
 		for (int j = 1; j < P; j++){ 
-    		MPI_Send(&in.width, 1, MPI_LONG, j, 0, MPI_COMM_WORLD);
-    		MPI_Send(&in.height, 1, MPI_LONG, j, 0, MPI_COMM_WORLD);
+    		MPI_Send(&in.width, 1, MPI_UNSIGNED_LONG, j, 0, MPI_COMM_WORLD);
+    		MPI_Send(&in.height, 1, MPI_UNSIGNED_LONG, j, 0, MPI_COMM_WORLD);
     		MPI_Send(in.data, in.width * in.height * 3, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
     	}
 	}
@@ -227,8 +227,8 @@ int main(int argc, char * argv[]) {
     	int data_size = out.width * out.height * 3;
         in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
 
-        MPI_Recv(&in.width, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&in.height, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&in.width, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&in.height, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(in.data, in.width * in.height * 3, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
    	}
 

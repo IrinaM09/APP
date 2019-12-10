@@ -161,9 +161,9 @@ void* applyFilter(void *var)
 {
 	struct interval crtThread = *(struct interval*) var;
 
-	for (int i = crtThread.start; i < crtThread.end; i++)
+	for (unsigned long i = crtThread.start; i < crtThread.end; i++)
 	{
-		for (int j = 0; j < 3 * in.width; j++)
+		for (unsigned long j = 0; j < 3 * in.width; j++)
 		{
 			//Border case
 			if (i < 1 || i >= in.height - 1 ||
