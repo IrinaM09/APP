@@ -10,8 +10,8 @@
 // ex. ./openmp in/house.jpg house_line.jpg 
 
 typedef struct {
-	int width;
-	int height;
+	unsigned long width;
+	unsigned long height;
 	unsigned char *data;
 } image;
 
@@ -57,9 +57,9 @@ void readInput(const char *fileName, image *img)
     unsigned char* rowptr[1];
     unsigned char* jdata;
 
-	printf("Input image width and height: %d %d\n", (*img).width, (*img).height);
+	printf("Input image width and height: %lu %lu\n", (*img).width, (*img).height);
 
-	img->data = (unsigned char *)malloc(data_size);
+	img->data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
 
 	while (info.output_scanline < info.output_height)
 	{
@@ -108,7 +108,7 @@ void writeData(const char *fileName, image *img)
 	
   	unsigned char* rowptr[1];
 
-	printf("Output image width and height: %d %d\n", (*img).width, (*img).height);
+	printf("Output image width and height: %lu %lu\n", (*img).width, (*img).height);
 
     jpeg_set_defaults(&info);
 
@@ -130,15 +130,15 @@ void writeData(const char *fileName, image *img)
 }
 
 //Apply filter on sum x product of neighbours
-int computeSum(int row, int column, image *in)
+int computeSum(unsigned long row, unsigned long column, image *in)
 {
 	int sum = 0;
-	int rowIdx = row - 1;
-	int colIdx = column - 3;
+	unsigned long rowIdx = row - 1;
+	unsigned long colIdx = column - 3;
 
-	for (int i = rowIdx, fi = 0; i < rowIdx + 3; i++, fi++)
+	for (unsigned long i = rowIdx, fi = 0; i < rowIdx + 3; i++, fi++)
 	{
-		for (int j = colIdx, fj = 0; j < colIdx + 9; j += 3, fj++)
+		for (unsigned long j = colIdx, fj = 0; j < colIdx + 9; j += 3, fj++)
 		{
 			sum += (int)(in->data[i * 3 * in->width + j]) * edgeDetectionFilter[fi][fj];
 		}
@@ -150,7 +150,7 @@ int computeSum(int row, int column, image *in)
 //Apply filter
 void applyFilter(image *in, image *out)
 {
-	int i, j;
+	unsigned long i, j;
 
 	// no need to make i private; it is already private
 	#pragma omp parallel for private (j)
@@ -166,7 +166,7 @@ void applyFilter(image *in, image *out)
 				continue;
 			}
 
-			out->data[i * 3 * in->width + j] = (char)(computeSum(i, j, in) / 16);
+			out->data[i * 3 * in->width + j] = (unsigned char)(computeSum(i, j, in) / 16);
 		}
 	}
 }
@@ -183,7 +183,7 @@ int main(int argc, char * argv[]) {
 	out.height = in.height;
 	out.width = in.width;
 	unsigned long data_size = (unsigned long) out.width * out.height * 3;
-	out.data = (unsigned char *)malloc(data_size);
+	out.data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
 
 	printf("successfully Initialized output\n");
 

@@ -9,8 +9,8 @@
 // ex. mpirun -np 4 ./mpi in/house.pgm house_line.pgm
 
 typedef struct {
-	int width;
-	int height;
+	unsigned long width;
+	unsigned long height;
 	unsigned char *data;
 } image;
 
@@ -65,9 +65,9 @@ void readInput(const char *fileName, image *img)
     unsigned char* rowptr[1];
     unsigned char* jdata;
 
-	printf("Input image width and height: %d %d\n", (*img).width, (*img).height);
+	printf("Input image width and height: %lu %lu\n", (*img).width, (*img).height);
 
-	img->data = (unsigned char *)malloc(data_size);
+	img->data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
 
 	while (info.output_scanline < info.output_height)
 	{
@@ -116,7 +116,7 @@ void writeData(const char *fileName, image *img)
 	
   	unsigned char* rowptr[1];
 
-	printf("Output image width and height: %d %d\n", (*img).width, (*img).height);
+	printf("Output image width and height: %lu %lu\n", (*img).width, (*img).height);
 
     jpeg_set_defaults(&info);
 
@@ -138,15 +138,15 @@ void writeData(const char *fileName, image *img)
 }
 
 //Apply filter on sum x product of neighbours
-int computeSum(int row, int column, image *in)
+int computeSum(unsigned long row, unsigned long column, image *in)
 {
 	int sum = 0;
-	int rowIdx = row - 1;
-	int colIdx = column - 3;
+	unsigned long rowIdx = row - 1;
+	unsigned long colIdx = column - 3;
 
-	for (int i = rowIdx, fi = 0; i < rowIdx + 3; i++, fi++)
+	for (unsigned long i = rowIdx, fi = 0; i < rowIdx + 3; i++, fi++)
 	{
-		for (int j = colIdx, fj = 0; j < colIdx + 9; j += 3, fj++)
+		for (unsigned long j = colIdx, fj = 0; j < colIdx + 9; j += 3, fj++)
 		{
 			sum += (int)(in->data[i * 3 * in->width + j]) * edgeDetectionFilter[fi][fj];
 		}
@@ -162,9 +162,9 @@ void applyFilter(image *in, image *out, int rank, int P)
 
 	getInterval(&start, &end, rank, P, in->height);
 
-	for (int i = start; i < end; i++)
+	for (unsigned long i = start; i < end; i++)
 	{
-		for (int j = 0; j < 3 * in->width; j++)
+		for (unsigned long j = 0; j < 3 * in->width; j++)
 		{
 			//Border case
 			if (i < 1 || i >= end - 1 ||
@@ -174,7 +174,7 @@ void applyFilter(image *in, image *out, int rank, int P)
 				continue;
 			}
 
-			out->data[i * 3 * in->width + j] = (char)(computeSum(i, j, in) / 16);
+			out->data[i * 3 * in->width + j] = (unsigned char)(computeSum(i, j, in) / 16);
 		}
 	}
 }
@@ -217,18 +217,18 @@ int main(int argc, char * argv[]) {
 
 		// Send image to the other processes
 		for (int j = 1; j < P; j++){ 
-    		MPI_Send(&in.width, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
-    		MPI_Send(&in.height, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
+    		MPI_Send(&in.width, 1, MPI_LONG, j, 0, MPI_COMM_WORLD);
+    		MPI_Send(&in.height, 1, MPI_LONG, j, 0, MPI_COMM_WORLD);
     		MPI_Send(in.data, in.width * in.height * 3, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
     	}
 	}
 
     if (rank != 0) {
     	int data_size = out.width * out.height * 3;
-        in.data = (unsigned char *) malloc(data_size);
+        in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
 
-        MPI_Recv(&in.width, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&in.height, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&in.width, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&in.height, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(in.data, in.width * in.height * 3, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
    	}
 
@@ -237,7 +237,7 @@ int main(int argc, char * argv[]) {
 	out.height = in.height;
 	out.width = in.width;
 	unsigned long data_size = (unsigned long)out.width * out.height * 3;
-	out.data = (unsigned char *) malloc(data_size);
+	out.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
 
 	printf("successfully Initialized output\n");
 
