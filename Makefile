@@ -4,7 +4,7 @@ MPICC=mpicc
 SEQFLAGS=-ljpeg
 THREADSFLAGS=-lpthread -ljpeg
 OMPFLAGS=-fopenmp -ljpeg
-MPIGLAGS=-ljpeg
+MPIFLAGS=-ljpeg
 
 all: secv omp threads mpi
 
@@ -20,4 +20,5 @@ threads:
 mpi:
 	$(MPICC) -o mpi mpi.c $(MPIFLAGS)
 
-
+clean:
+	rm secv openmp threads mpi
