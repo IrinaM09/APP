@@ -161,7 +161,6 @@ void applyFilter(image *in, image *out, int rank, int P)
 	unsigned long start, end;
 
 	getInterval(&start, &end, rank, P, in->height);
-
 	for (unsigned long i = start; i < end; i++)
 	{
 		for (unsigned long j = 0; j < 3 * in->width; j++)
@@ -184,18 +183,18 @@ void applyFilter(image *in, image *out, int rank, int P)
 void computeImage(image *out, int rank, int P) {
 	unsigned long start, end;
 	
-	if (rank != 0) {
+	if (rank != 0) 
+	{
 		getInterval(&start, &end, rank, P, out->height);
-
-		end = end - start + 1;
-
-    	MPI_Send(out->data, out->width * end, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
+    		printf("%d: %ld %ld\n", rank, start * 3 * out->width, (end - start) * 3 * out->width);
+		MPI_Send(out->data + start * 3 * out->width, (end - start) * 3 * out->width, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
 	} 
-	else {
-		for (int proc = 1; proc < P; proc++) {
+	else 
+	{
+		for (int proc = 1; proc < P; proc++) 
+		{
 			getInterval(&start, &end, proc, P, out->height);
-
-    		MPI_Recv(out->data, out->width * end, MPI_UNSIGNED_CHAR, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	    		MPI_Recv(out->data + start * 3 * out->width, (end - start) * 3 * out->width, MPI_UNSIGNED_CHAR, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
 	}
 }
@@ -211,52 +210,51 @@ int main(int argc, char * argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &P);
 
-	if (rank == 0) {
+	if (rank == 0) 
+	{
 		// Read the input image
 		readInput(argv[1], &in);
-
-		// Send image to the other processes
-		for (int j = 1; j < P; j++){ 
-    		MPI_Send(&in.width, 1, MPI_UNSIGNED_LONG, j, 0, MPI_COMM_WORLD);
-    		MPI_Send(&in.height, 1, MPI_UNSIGNED_LONG, j, 0, MPI_COMM_WORLD);
-    		MPI_Send(in.data, in.width * in.height * 3, MPI_UNSIGNED_CHAR, rank, 0, MPI_COMM_WORLD);
-    	}
 	}
 
-    if (rank != 0) {
-    	int data_size = out.width * out.height * 3;
-        in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
-
-        MPI_Recv(&in.width, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&in.height, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Recv(in.data, in.width * in.height * 3, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    	MPI_Bcast(&in.width, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    	MPI_Bcast(&in.height, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    	
+	if (rank != 0)
+       	{
+    		unsigned long data_size = in.width * in.height * 3;
+        	in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
    	}
 
-	printf("successfully read input\n");
+    	MPI_Bcast(in.data, (unsigned long)(in.width * in.height * 3), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	
+	if (rank == 0)
+		printf("successfully read input\n");
 	
 	out.height = in.height;
 	out.width = in.width;
 	unsigned long data_size = (unsigned long)out.width * out.height * 3;
 	out.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
 
-	printf("successfully Initialized output\n");
+	if (rank == 0)
+		printf("successfully Initialized output\n");
 
 	// Apply the filter on image on chunks
 	applyFilter(&in, &out, rank, P);
 	MPI_Barrier(MPI_COMM_WORLD);
 
-	printf("successfully applied filter\n");
+	if (rank == 0)
+		printf("successfully applied filter\n");
 
 	// Compute the whole image
 	computeImage(&out, rank, P);
 
-	if (rank == 0) {
+	if (rank == 0)
 		writeData(argv[2], &out);
-	}
 
 	MPI_Finalize();
 
-	printf("successfully wrote data \n");
+	if (rank == 0)
+		printf("successfully wrote data \n");
 
 	free(in.data);
 	free(out.data);

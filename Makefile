@@ -8,16 +8,16 @@ MPIFLAGS=-ljpeg
 
 all: secv omp threads mpi
 
-secv: 
+secv: secvential.c
 	$(CC) -o secv secvential.c $(SEQFLAGS)
 
-omp:
+omp: openmp.c
 	$(CC) -o openmp openmp.c $(OMPFLAGS)
 
-threads:
+threads: pthreads.c
 	$(CC) -o threads pthreads.c $(THREADSFLAGS)
 
-mpi:
+mpi: mpi.c
 	$(MPICC) -o mpi mpi.c $(MPIFLAGS)
 
 clean:
