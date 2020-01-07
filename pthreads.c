@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include <jpeglib.h>
+#include "libjpeg/jpeglib.h"
 
 // compilare gcc -o pthreads pthreads.c -lpthread -ljpeg
 // rulare ./pthreads <image_in> <image_out>
@@ -138,7 +138,7 @@ void writeData(const char *fileName, image *img)
 	jpeg_destroy_compress(&info);
 }
 
-//Apply filter on sum x product of neighbours
+//Compute sum of neighbours product
 int computeSum(unsigned long row, unsigned long column)
 {
 	int sum = 0;

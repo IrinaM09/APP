@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <jpeglib.h>
+#include "libjpeg/jpeglib.h"
 #include <omp.h>
 
 // compilare gcc -o openmp -fopenmp openmp.c
@@ -129,7 +129,7 @@ void writeData(const char *fileName, image *img)
 	jpeg_destroy_compress(&info);
 }
 
-//Apply filter on sum x product of neighbours
+//Compute sum of neighbours product
 int computeSum(unsigned long row, unsigned long column, image *in)
 {
 	int sum = 0;

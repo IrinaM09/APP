@@ -2,10 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include "libjpeg/jpeglib.h"
+#include <mpi.h>
+#include <omp.h>
+
+// compilare mpicc -fopenmp -o hybrid hybrid.c -ljpeg
+// rulare mpirun -np <nr_proc> ./hybrid <image_in> <image_out>
+// ex. mpirun -np 4 ./hybrid in/house.pgm house_line.pgm
 
 typedef struct {
-	int width;
-	int height;
+	unsigned long width;
+	unsigned long height;
 	unsigned char *data;
 } image;
 
@@ -14,6 +20,15 @@ int edgeDetectionFilter[3][3] = {{-1, -1, -1},
 								 {-1, 8, -1},
 								 {-1, -1, -1}};
 
+
+//Get the interval to process
+void getInterval(unsigned long *start, unsigned long *end, int rank, int P, unsigned long height) {
+	*start = rank * height / P;
+	*end = (rank + 1) * height / P;
+
+	if (rank == P - 1 && height % P != 0)
+		*end = height;
+} 
 
 //Read a given image
 void readInput(const char *fileName, image *img)
@@ -51,9 +66,9 @@ void readInput(const char *fileName, image *img)
     unsigned char* rowptr[1];
     unsigned char* jdata;
 
-	printf("Input image width and height: %d %d\n", (*img).width, (*img).height);
+	printf("Input image width and height: %lu %lu\n", (*img).width, (*img).height);
 
-	img->data = (unsigned char*)malloc(data_size * sizeof(unsigned char));
+	img->data = (unsigned char *)malloc(data_size * sizeof(unsigned char));
 
 	while (info.output_scanline < info.output_height)
 	{
@@ -102,7 +117,7 @@ void writeData(const char *fileName, image *img)
 	
   	unsigned char* rowptr[1];
 
-	printf("Output image width and height: %d %d\n", (*img).width, (*img).height);
+	printf("Output image width and height: %lu %lu\n", (*img).width, (*img).height);
 
     jpeg_set_defaults(&info);
 
@@ -142,14 +157,20 @@ int computeSum(unsigned long row, unsigned long column, image *in)
 }
 
 //Apply filter
-void applyFilter(image *in, image *out)
+void applyFilter(image *in, image *out, int rank, int P)
 {
-	for (unsigned long i = 0; i < in->height; i++)
+	unsigned long start, end, j;
+
+	getInterval(&start, &end, rank, P, in->height);
+
+	// no need to make i private; it is already private
+	#pragma omp parallel for private (j)
+	for (unsigned long i = start; i < end; i++)
 	{
-		for (unsigned long j = 0; j < 3 * in->width; j++)
+		for (j = 0; j < 3 * in->width; j++)
 		{
 			//Border case
-			if (i < 1 || i >= in->height - 1 ||
+			if (i < 1 || (rank == P-1 && i >= end - 1) ||
 				j < 3 || j >= 3 * in->width - 3)
 			{
 				out->data[i *  3 * in->width + j] = in->data[i * 3 * in->width + j];
@@ -162,30 +183,82 @@ void applyFilter(image *in, image *out)
 }
 
 
+//Compute the whole image
+void computeImage(image *out, int rank, int P) {
+	unsigned long start, end;
+	
+	if (rank != 0) 
+	{
+		getInterval(&start, &end, rank, P, out->height);
+    		printf("%d: %ld %ld\n", rank, start * 3 * out->width, (end - start) * 3 * out->width);
+		MPI_Send(out->data + start * 3 * out->width, (end - start) * 3 * out->width, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+	} 
+	else 
+	{
+		for (int proc = 1; proc < P; proc++) 
+		{
+			getInterval(&start, &end, proc, P, out->height);
+	    		MPI_Recv(out->data + start * 3 * out->width, (end - start) * 3 * out->width, MPI_UNSIGNED_CHAR, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		}
+	}
+}
+
 int main(int argc, char * argv[]) {
 	image in;
 	image out;
 
-	readInput(argv[1], &in);
+	int rank;
+	int P;
 
-	printf("successfully read input\n");
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &P);
+
+	if (rank == 0) 
+	{
+		// Read the input image
+		readInput(argv[1], &in);
+	}
+
+    	MPI_Bcast(&in.width, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    	MPI_Bcast(&in.height, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    	
+	if (rank != 0)
+       	{
+    		unsigned long data_size = in.width * in.height * 3;
+        	in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
+   	}
+
+    	MPI_Bcast(in.data, (unsigned long)(in.width * in.height * 3), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	
+	if (rank == 0)
+		printf("successfully read input\n");
 	
 	out.height = in.height;
 	out.width = in.width;
-	unsigned long data_size = (unsigned long) out.width * out.height * 3;
-	out.data = (unsigned char*)malloc(data_size * sizeof(unsigned char));
-	if (out.data == NULL)
-		return -1;
+	unsigned long data_size = (unsigned long)out.width * out.height * 3;
+	out.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
 
-	printf("successfully Initialized output\n");
+	if (rank == 0)
+		printf("successfully Initialized output\n");
 
-	applyFilter(&in, &out);
+	// Apply the filter on image on chunks
+	applyFilter(&in, &out, rank, P);
+	MPI_Barrier(MPI_COMM_WORLD);
 
-	printf("successfully applied filter\n");
+	if (rank == 0)
+		printf("successfully applied filter\n");
 
-	writeData(argv[2], &out);
+	// Compute the whole image
+	computeImage(&out, rank, P);
 
-	printf("successfully wrote data \n");
+	if (rank == 0)
+		writeData(argv[2], &out);
+
+	MPI_Finalize();
+
+	if (rank == 0)
+		printf("successfully wrote data \n");
 
 	free(in.data);
 	free(out.data);

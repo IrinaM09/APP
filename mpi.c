@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <jpeglib.h>
+#include "libjpeg/jpeglib.h"
 #include <mpi.h>
 
 // compilare mpicc -o mpi mpi.c -ljpeg
