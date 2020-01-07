@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libjpeg/jpeglib.h"
+// #include "libjpeg/jpeglib.h"
+#include <jpeglib.h>
 #include <mpi.h>
 
 // compilare mpicc -o mpi mpi.c -ljpeg
@@ -13,6 +14,12 @@ typedef struct {
 	unsigned long height;
 	unsigned char *data;
 } image;
+
+// typedef struct {
+// unsigned char chunk1;
+// unsigned char chunk2;
+// unsigned char chunk3;
+// } image_chunks;
 
 // Gaussian noise reduction (sum /= 16)
 int edgeDetectionFilter[3][3] = {{-1, -1, -1},
@@ -216,18 +223,34 @@ int main(int argc, char * argv[]) {
 		readInput(argv[1], &in);
 	}
 
-    	MPI_Bcast(&in.width, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-    	MPI_Bcast(&in.height, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&in.width, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&in.height, 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
     	
 	if (rank != 0)
-       	{
-    		unsigned long data_size = in.width * in.height * 3;
-        	in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
+    {
+    	unsigned long data_size = in.width * in.height * 3;
+       	in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
    	}
 
-    	MPI_Bcast(in.data, (unsigned long)(in.width * in.height), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-    	MPI_Bcast(in.data + in.width * in.height, (unsigned long)(in.width * in.height), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-    	MPI_Bcast(in.data + 2 * in.width * in.height, (unsigned long)(in.width * in.height), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+   	MPI_Datatype image_chuncks_type;
+	MPI_Type_contiguous((unsigned long)3 * in.width * in.height, MPI_UNSIGNED_CHAR, &image_chuncks_type);
+	MPI_Type_commit(&image_chuncks_type);
+
+	// ALSO TRY WITH Send and Recv if it's not working with Bcast
+	// if (rank == 0)
+	// {
+	// 	for (int i = 1; i < P; i++)
+	// 	{
+	// 		MPI_Send(in.data, 1, image_chuncks_type, i, 0, MPI_COMM_WORLD);
+	// 	}
+	// }
+
+	// if (rank != 0)
+	// {
+	// 	MPI_Recv(in.data, 1, image_chuncks_type, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);	
+	// }
+
+    MPI_Bcast(in.data, 1, image_chuncks_type, 0, MPI_COMM_WORLD);
 
 	if (rank == 0)
 		printf("successfully read input\n");
