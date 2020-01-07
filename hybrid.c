@@ -229,8 +229,16 @@ int main(int argc, char * argv[]) {
         	in.data = (unsigned char *) malloc(data_size * sizeof(unsigned char));
    	}
 
-    	MPI_Bcast(in.data, (unsigned long)(in.width * in.height * 3), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-	
+    	MPI_Bcast(in.data, in.width * in.height, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	printf("chunk 1\n");
+    	MPI_Bcast(in.data + in.width * in.height, in.width * in.height, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	printf("chunk 2\n");
+    	MPI_Bcast(in.data + 2 * in.width * in.height, in.width * in.height, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+	printf("chunk 3\n");
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	if (rank == 0)
 		printf("successfully read input\n");
 	

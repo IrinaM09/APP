@@ -6,7 +6,7 @@ THREADSFLAGS=-lpthread -ljpeg -L.
 OMPFLAGS=-fopenmp -ljpeg -L.
 MPIFLAGS=-ljpeg -L.
 
-all: secv omp threads mpi
+all: secv omp threads mpi hybrid
 
 secv: secvential.c
 	$(CC) -o secv secvential.c $(SEQFLAGS)

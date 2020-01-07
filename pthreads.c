@@ -28,7 +28,7 @@ int edgeDetectionFilter[3][3] = {{-1, -1, -1},
 
 image in;
 image out;
-int P = 4;
+int P = 24;
 
 //Read a given image
 void readInput(const char *fileName, image *img)
