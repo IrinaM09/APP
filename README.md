@@ -12,3 +12,6 @@ Echipa proiectului
 
 Numele asistentului
  Razvan Dobre
+
+Imaginea folosita:
+https://commons.wikimedia.org/wiki/File:Judith_at_the_Banquet_of_Holofernes_(previously_known_as_Artemisia),_by_Rembrandt,_from_Prado_in_Google_Earth.jpg?fbclid=IwAR0Z9cM_9-sUw8weAahzuSJX2NOQYdNQKHLCDaxN_euiGWdttMADSGQvL-k
