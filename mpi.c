@@ -166,7 +166,7 @@ void applyFilter(image *in, image *out, int rank, int P)
 		for (unsigned long j = 0; j < 3 * in->width; j++)
 		{
 			//Border case
-			if (i < 1 || i >= end - 1 ||
+			if (i < 1 || (rank == P-1 && i >= end - 1) ||
 				j < 3 || j >= 3 * in->width - 3)
 			{
 				out->data[i *  3 * in->width + j] = in->data[i * 3 * in->width + j];
