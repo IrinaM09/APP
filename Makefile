@@ -1,10 +1,10 @@
 CC=gcc
 MPICC=mpicc
 
-SEQFLAGS=-ljpeg
-THREADSFLAGS=-lpthread -ljpeg
-OMPFLAGS=-fopenmp -ljpeg
-MPIFLAGS=-ljpeg
+SEQFLAGS=-ljpeg -L.
+THREADSFLAGS=-lpthread -ljpeg -L.
+OMPFLAGS=-fopenmp -ljpeg -L.
+MPIFLAGS=-ljpeg -L.
 
 all: secv omp threads mpi
 
@@ -20,5 +20,8 @@ threads: pthreads.c
 mpi: mpi.c
 	$(MPICC) -o mpi mpi.c $(MPIFLAGS)
 
+hybrid: hybrid.c
+	$(MPICC) -o hybrid hybrid.c $(MPIFLAGS) $(OMPFLAGS)
+
 clean:
-	rm secv openmp threads mpi
+	rm secv openmp threads mpi hybrid
